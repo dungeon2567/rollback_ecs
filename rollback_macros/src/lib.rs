@@ -597,7 +597,8 @@ pub fn system(input: TokenStream) -> TokenStream {
 pub fn component_derive(input: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(input as DeriveInput);
     let name = &ast.ident;
-    let static_name = syn::Ident::new(&format!("ID_{}", name), name.span());
+
+    let cleanup_name = syn::Ident::new(&format!("{}CleanupSystem", name), name.span());
 
     let gen = quote! {
         // 2️⃣ Implement Component trait
@@ -606,6 +607,28 @@ pub fn component_derive(input: TokenStream) -> TokenStream {
                 static TYPE_INDEX: std::sync::OnceLock<usize> = std::sync::OnceLock::new();
 
                 *TYPE_INDEX.get_or_init(|| crate::component::next_id())
+            }
+        }
+
+        struct #cleanup_name(crate::system::ComponentCleanupSystem<#name>);
+
+        impl crate::scheduler::pipeline::PipelineStage for #cleanup_name {
+
+            fn create(world: &mut crate::world::World) -> Self {
+                #cleanup_name(crate::system::ComponentCleanupSystem::create(world))
+            }
+
+            fn reads(&self) -> &'static [std::any::TypeId] {
+                self.0.reads()
+            }
+
+            fn writes(&self) -> &'static [std::any::TypeId] {
+                static WRITES: &[std::any::TypeId] = &[std::any::TypeId::of::<#name>()];
+                WRITES
+            }
+
+            fn run(&self){
+                self.0.run();
             }
         }
     };

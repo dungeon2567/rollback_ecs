@@ -186,7 +186,7 @@ mod tests {
     use crate::world::World;
 
     #[derive(Component, Default, Clone)]
-    pub struct Test{}
+    pub struct Test {}
 
     #[test]
     fn basic_entity_spawn_test() {

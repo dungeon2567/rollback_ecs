@@ -57,5 +57,5 @@ fn benchmark_storage_spawn(c: &mut Criterion) {
     });
 }
 
-criterion_group!(benches, benchmark_world_spawn, benchmark_storage_spawn);
+criterion_group!(benches, benchmark_world_spawn_destroy_1000, benchmark_storage_spawn);
 criterion_main!(benches);
