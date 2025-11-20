@@ -1,0 +1,15 @@
+[package]
+name = "rollback_ecs"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rollback_macros = { path = "rollback_macros" }
+linkme = "*"
+
+[dev-dependencies]
+criterion = "0.5"
+
+[[bench]]
+name = "spawn_benchmark"
+harness = false
