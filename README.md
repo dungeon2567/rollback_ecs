@@ -1,6 +1,6 @@
 # ercs
 
-[![CI](https://github.com/dungeon2567/RollbackEcs/actions/workflows/ci.yml/badge.svg)](https://github.com/dungeon2567/RollbackEcs/actions/workflows/ci.yml)
+[![CI](https://github.com/dungeon2567/rollback_ecs/actions/workflows/ci.yml/badge.svg)](https://github.com/dungeon2567/rollback_ecs/actions/workflows/ci.yml)
 
 ## Description
 
