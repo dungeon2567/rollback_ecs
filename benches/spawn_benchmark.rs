@@ -1,7 +1,7 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use rollback_ecs::world::World;
 use rollback_ecs::entity::Entity;
-use rollback_ecs::storage::storage::BitsetStorage;
+use rollback_ecs::storage::BitsetStorage;
 
 use rollback_ecs::system::DestroySystem;
 

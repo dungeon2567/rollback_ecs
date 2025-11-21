@@ -4,8 +4,8 @@ use crate::component::Component;
 pub struct Entity(u32);
 
 impl Entity {
-    const GENERATION_BITS: u32 = 8;
-    const INDEX_BITS: u32 = 24;
+    const GENERATION_BITS: u32 = 10;
+    const INDEX_BITS: u32 = 22;
     const GENERATION_MASK: u32 = (1 << Self::GENERATION_BITS) - 1;
     const INDEX_MASK: u32 = (1 << Self::INDEX_BITS) - 1;
 
@@ -29,13 +29,11 @@ impl Entity {
     }
 
     #[inline(always)]
-    /// Get the index (top 24 bits)
     pub fn index(&self) -> u32 {
         (self.0 >> Self::GENERATION_BITS) & Self::INDEX_MASK
     }
 
     #[inline(always)]
-    /// Set the index (top 24 bits)
     pub fn set_index(&mut self, index: u32) {
         let index = index & Self::INDEX_MASK;
         self.0 = (self.0 & Self::GENERATION_MASK) | (index << Self::GENERATION_BITS);
@@ -58,7 +56,8 @@ impl Entity {
     /// Increment the generation (wrapping)
     pub fn increment_generation(&mut self) {
         let generation = self.generation().wrapping_add(1) & Self::GENERATION_MASK;
-        self.set_generation(generation);
+
+        self.set_generation(if generation == 0 { 1u32 } else { generation });
     }
 }
 
