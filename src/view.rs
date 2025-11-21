@@ -1,6 +1,6 @@
 use std::ops::{Deref, DerefMut};
+use crate::block::Block;
 use crate::component::{Component};
-use crate::storage::block::Block;
 
 pub struct View<'a, T: Component> {
     pub data: &'a T

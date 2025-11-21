@@ -5,7 +5,7 @@ edition = "2024"
 
 [dependencies]
 rollback_macros = { path = "rollback_macros" }
-linkme = "*"
+bumpalo = "3.19"
 
 [dev-dependencies]
 criterion = "0.5"

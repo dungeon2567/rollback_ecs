@@ -1,15 +1,32 @@
-use crate::storage::block::Block;
-use crate::storage::view::ViewMut;
+use std::alloc::Allocator;
+use std::any::Any;
+use bumpalo::Bump;
 
-pub struct Storage<T>
-{
-    pub root: Block<Box<Block<Box<Block<T>>>>>
+use crate::block::Block;
+use crate::block::SnapshotBlock;
+
+pub trait Storage: Any + Sized {
+
 }
 
-impl<T> Storage<T> {
+pub struct BitsetStorage<T>
+{
+    pub root: Block<Box<Block<Box<Block<T>>>>>,
+    pub prev: Option<Box<SnapshotStorage<T>>>
+}
+
+pub struct SnapshotStorage<T> {
+    pub root: SnapshotBlock<Box<SnapshotBlock<Box<SnapshotBlock<T>>>>>,
+    pub tick: Tick,
+    pub allocator: Bump,
+    pub prev: Option<Box<SnapshotStorage<T>>>
+}
+
+impl<T> BitsetStorage<T> {
     pub fn new() -> Self {
-        Storage {
-            root: Block::new()
+        BitsetStorage {
+            root: Block::new(),
+            prev: None
         }
     }
 
@@ -177,16 +194,19 @@ impl<T> Storage<T> {
 }
 
 use crate::entity::Entity;
+use crate::tick::Tick;
 
-impl Storage<Entity> {
+impl BitsetStorage<Entity> {
     pub fn spawn(&mut self) -> &Entity {
         let root = &mut self.root;
         
         // 1. Find free slot in root
         let free_root = !root.absence_mask;
+
         if free_root == 0 {
             panic!("Storage is full");
         }
+
         let ri = free_root.trailing_zeros();
         
         root.ensure_child_exists(ri);
@@ -271,14 +291,18 @@ impl Storage<Entity> {
     
 }
 
+impl<T: Any + Sized> Storage for BitsetStorage<T> {
+
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::component::Component;
-    use crate::storage::block::Block;
+    use crate::block::Block;
 
     /// Verify tree invariants for the storage hierarchy
-    fn verify_tree_invariants<T>(storage: &Storage<T>) {
+    fn verify_tree_invariants<T>(storage: &BitsetStorage<T>) {
         let root = &storage.root;
         
         // Invariant 1: absence_mask must be subset of presence_mask
@@ -354,7 +378,7 @@ mod tests {
 
     #[test]
     fn test_create() {
-        let mut storage = Storage::<Entity>::new();
+        let mut storage = BitsetStorage::<Entity>::new();
 
         // Create 128 items (fill one inner block)
         for i in 0..128 {
@@ -414,7 +438,7 @@ mod tests {
 
     #[test]
     fn test_len() {
-        let mut storage = Storage::<Entity>::new();
+        let mut storage = BitsetStorage::<Entity>::new();
 
         assert_eq!(storage.len(), 0);
 
@@ -449,7 +473,7 @@ mod tests {
 
     #[test]
     fn test_entity_generation() {
-        let mut storage = Storage::<Entity>::new();
+        let mut storage = BitsetStorage::<Entity>::new();
 
         // Create first entity
         let e1 = *storage.spawn();
@@ -479,13 +503,13 @@ mod tests {
     }
 
     // Helper function to delete an entity using the Storage::remove method
-    fn delete_entity(storage: &mut Storage<Entity>, index: u32) {
+    fn delete_entity(storage: &mut BitsetStorage<Entity>, index: u32) {
         storage.remove(index);
     }
 
     #[test]
     fn test_spawn_delete_cycle() {
-        let mut storage = Storage::<Entity>::new();
+        let mut storage = BitsetStorage::<Entity>::new();
         
         // Spawn and delete the same slot multiple times
         for cycle in 1..=10 {
@@ -505,7 +529,7 @@ mod tests {
 
     #[test]
     fn test_batch_delete_and_respawn() {
-        let mut storage = Storage::<Entity>::new();
+        let mut storage = BitsetStorage::<Entity>::new();
         
         // Spawn 256 entities (2 full inner blocks)
         for i in 0..256 {
@@ -538,7 +562,7 @@ mod tests {
 
     #[test]
     fn test_delete_every_other() {
-        let mut storage = Storage::<Entity>::new();
+        let mut storage = BitsetStorage::<Entity>::new();
         
         // Spawn 100 entities
         for i in 0..100 {
@@ -570,7 +594,7 @@ mod tests {
 
     #[test]
     fn test_delete_across_blocks() {
-        let mut storage = Storage::<Entity>::new();
+        let mut storage = BitsetStorage::<Entity>::new();
         
         // Fill first inner block completely (128 entities)
         for i in 0..128 {
@@ -616,7 +640,7 @@ mod tests {
 
     #[test]
     fn test_delete_loop_pattern() {
-        let mut storage = Storage::<Entity>::new();
+        let mut storage = BitsetStorage::<Entity>::new();
         
         // Pattern: spawn 10, delete 5, spawn 10, delete 5, etc.
         let mut expected_indices = Vec::new();
@@ -668,7 +692,7 @@ mod tests {
     fn test_changed_mask_propagation() {
         use crate::component::Destroyed;
         
-        let mut storage = Storage::<Destroyed>::new();
+        let mut storage = BitsetStorage::<Destroyed>::new();
 
         // Initially, all changed_masks should be 0
         assert_eq!(storage.root.changed_mask, 0);
@@ -718,7 +742,7 @@ mod tests {
 
     #[test]
     fn test_get() {
-        let mut storage = Storage::<u32>::new();
+        let mut storage = BitsetStorage::<u32>::new();
         
         // Set some values
         storage.set(0, &100);

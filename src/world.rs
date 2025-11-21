@@ -3,9 +3,9 @@ use std::mem::MaybeUninit;
 use std::rc::Rc;
 use std::cell::RefCell;
 use crate::component::{Component, Destroyed};
+use crate::scheduler::PipelineStage;
 use crate::entity::Entity;
-use crate::scheduler::pipeline::PipelineStage;
-use crate::storage::storage::{Storage};
+use crate::storage::BitsetStorage;
 
 pub struct World {
     pub storages: [MaybeUninit<Box<dyn Any>>; 128],
@@ -20,7 +20,7 @@ impl World {
         }
     }
     
-    pub fn get<T: Component>(&mut self) -> Rc<RefCell<Storage<T>>> {
+    pub fn get<T: Component>(&mut self) -> Rc<RefCell<BitsetStorage<T>>> {
         let id = T::type_index();
 
         if id >= 128 { panic!("invalid component type index") }
@@ -28,7 +28,7 @@ impl World {
         let bit = 1u128 << id;
 
         if (self.mask & bit) == 0 {
-            let rc = Rc::new(RefCell::new(Storage::<T>::new()));
+            let rc = Rc::new(RefCell::new(BitsetStorage::<T>::new()));
             self.storages[id] = MaybeUninit::new(Box::new(rc.clone()) as Box<dyn Any>);
             self.mask |= bit;
             return rc;
@@ -37,7 +37,7 @@ impl World {
         let any = unsafe { self.storages[id].assume_init_ref() };
 
         unsafe {
-            let raw = any.as_ref() as *const dyn Any as *const Rc<RefCell<Storage<T>>>;
+            let raw = any.as_ref() as *const dyn Any as *const Rc<RefCell<BitsetStorage<T>>>;
 
             (*raw).clone()
         }
@@ -60,6 +60,28 @@ impl World {
             self.get::<Destroyed>().borrow_mut().set(entity.index(), &Destroyed {});
         } else {
             panic!("Attempted to destroy entity {} which does not exist", entity.index());
+        }
+    }
+}
+
+impl Drop for World {
+    fn drop(&mut self) {
+        let mut mask = self.mask;
+        
+        unsafe {
+            let ptr = self.storages.as_mut_ptr();
+            
+            while mask != 0 {
+                let start = mask.trailing_zeros();
+                let run = (mask >> start).trailing_ones();
+                
+                for i in 0..run {
+                    ptr.add((start + i) as usize).read().assume_init_drop();
+                }
+                
+                let range_mask = if run == 128 { u128::MAX } else { ((1u128 << run) - 1) << start };
+                mask &= !range_mask;
+            }
         }
     }
 }

@@ -1,7 +1,7 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use rollback_ecs::world::World;
 use rollback_ecs::entity::Entity;
-use rollback_ecs::storage::storage::Storage;
+use rollback_ecs::storage::storage::BitsetStorage;
 
 use rollback_ecs::system::DestroySystem;
 
@@ -48,7 +48,7 @@ fn benchmark_world_spawn_destroy_1000(c: &mut Criterion) {
 fn benchmark_storage_spawn(c: &mut Criterion) {
     c.bench_function("storage_spawn", |b| {
         b.iter(|| {
-            let mut storage = Storage::<Entity>::new();
+            let mut storage = BitsetStorage::<Entity>::new();
             // Spawn 1000 entities
             for _ in 0..1000 {
                 storage.spawn();

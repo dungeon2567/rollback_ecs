@@ -1,12 +1,12 @@
 use std::any::TypeId;
 use rollback_macros::system as system;
-
 // Query trait not used in inlined macro run
 
 use crate::component::{Component, Destroyed};
 use crate::entity::Entity;
-use crate::scheduler::pipeline::PipelineStage;
+use crate::scheduler::PipelineStage;
 use crate::world::World;
+use crate::view::View;
 
 system! {
     DestroySystem {
@@ -28,13 +28,13 @@ system! {
 
 pub struct ChangedMaskCleanupSystem<T: Component>
 {
-    pub storage: std::rc::Rc<std::cell::RefCell<crate::storage::storage::Storage<T>>>,
+    pub storage: std::rc::Rc<std::cell::RefCell<crate::storage::BitsetStorage<T>>>,
 }
 
 pub struct ComponentCleanupSystem<T: Component>
 {
-    pub t_storage: std::rc::Rc<std::cell::RefCell<crate::storage::storage::Storage<T>>>,
-    pub destroyed_storage: std::rc::Rc<std::cell::RefCell<crate::storage::storage::Storage<Destroyed>>>
+    pub t_storage: std::rc::Rc<std::cell::RefCell<crate::storage::BitsetStorage<T>>>,
+    pub destroyed_storage: std::rc::Rc<std::cell::RefCell<crate::storage::BitsetStorage<Destroyed>>>
 }
 
 impl<T: Component> PipelineStage for ComponentCleanupSystem<T> {

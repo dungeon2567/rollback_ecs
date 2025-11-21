@@ -171,13 +171,13 @@ pub fn system(input: TokenStream) -> TokenStream {
 
     let _fn_inputs = view_args.iter().map(|va| {
         let vi = &va.ident; let ty = &va.ty;
-        if va.is_mut { quote!(#vi: crate::storage::view::ViewMut<#ty>) } else { quote!(#vi: crate::storage::view::View<#ty>) }
+        if va.is_mut { quote!(#vi: crate::view::ViewMut<#ty>) } else { quote!(#vi: crate::view::View<#ty>) }
     });
     // No function definition needed - removal handled automatically by macro
 
     // Tuple type: one per unique type with mutability as required
     let unique_tuple_types = unique_types.iter().enumerate().map(|(i, t)| {
-        if unique_mut_flags[i] { quote!(&mut crate::storage::storage::Storage<#t>) } else { quote!(&crate::storage::storage::Storage<#t>) }
+        if unique_mut_flags[i] { quote!(&mut crate::storage::BitsetStorage<#t>) } else { quote!(&crate::storage::BitsetStorage<#t>) }
     });
     let _args_tuple_type = quote!( ( #( #unique_tuple_types ),* ) );
 
@@ -417,7 +417,7 @@ pub fn system(input: TokenStream) -> TokenStream {
                         let root = unsafe { &mut #storage_ident.root };
                         let middle = unsafe { root.data[oi as usize].assume_init_mut() };
                         let inner = unsafe { middle.data[mi as usize].assume_init_mut() };
-                        crate::storage::view::ViewMut::new(
+                        crate::view::ViewMut::new(
                             unsafe { inner.data[ii as usize].assume_init_mut() }
                         )
                     };
@@ -428,7 +428,7 @@ pub fn system(input: TokenStream) -> TokenStream {
                         let root = unsafe { &#storage_ident.root };
                         let middle = unsafe { root.data[oi as usize].assume_init_ref() };
                         let inner = unsafe { middle.data[mi as usize].assume_init_ref() };
-                        crate::storage::view::View::new(
+                        crate::view::View::new(
                             unsafe { inner.data[ii as usize].assume_init_ref() }
                         )
                     };
@@ -508,7 +508,7 @@ pub fn system(input: TokenStream) -> TokenStream {
     // Stage fields: one per unique type
     let struct_fields_unique = unique_types.iter().enumerate().map(|(i, t)| {
         let id = &unique_idents[i];
-        quote!( pub #id: std::rc::Rc<std::cell::RefCell<crate::storage::storage::Storage<#t>>> , )
+        quote!( pub #id: std::rc::Rc<std::cell::RefCell<crate::storage::BitsetStorage<#t>>> , )
     });
 
     // Build run args from unique storages (borrow references)
@@ -541,7 +541,7 @@ pub fn system(input: TokenStream) -> TokenStream {
 
     let expanded = quote! {
         pub struct #stage_ident { #( #struct_fields_unique )* }
-        impl crate::scheduler::pipeline::PipelineStage for #stage_ident {
+        impl crate::scheduler::PipelineStage for #stage_ident {
             fn run(&self) {
                 #( #borrow_locals )*
 
@@ -602,7 +602,7 @@ pub fn component_derive(input: TokenStream) -> TokenStream {
 
     let gen = quote! {
         // 2️⃣ Implement Component trait
-        impl crate::component::Component for #name {
+        impl crate::component::Resource for #name {
             fn type_index() -> usize {
                 static TYPE_INDEX: std::sync::OnceLock<usize> = std::sync::OnceLock::new();
 
@@ -610,9 +610,13 @@ pub fn component_derive(input: TokenStream) -> TokenStream {
             }
         }
 
+        impl crate::component::Component for #name {
+
+        }
+
         struct #cleanup_name(crate::system::ComponentCleanupSystem<#name>);
 
-        impl crate::scheduler::pipeline::PipelineStage for #cleanup_name {
+        impl crate::scheduler::PipelineStage for #cleanup_name {
 
             fn create(world: &mut crate::world::World) -> Self {
                 #cleanup_name(crate::system::ComponentCleanupSystem::create(world))
