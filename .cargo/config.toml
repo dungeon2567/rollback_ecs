@@ -1,0 +1,14 @@
+# Cargo configuration file
+
+# Aliases for running Miri
+[alias]
+miri-test = "miri test"
+miri-run = "miri run"
+
+# Note: To use these aliases with MIRIFLAGS, run:
+#   MIRIFLAGS="-Zmiri-permissive-provenance -Zmiri-disable-stacked-borrows" cargo miri-test
+# Or use the scripts in the scripts/ directory which set these flags automatically
+
+# Configure wasm32-unknown-unknown test runner
+[target.wasm32-unknown-unknown]
+runner = "wasm-bindgen-test-runner"

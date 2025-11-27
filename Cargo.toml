@@ -1,0 +1,31 @@
+[package]
+name = "rollback_ecs"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rollback_macros = { path = "rollback_macros" }
+rayon = { version = "1.11.0", optional = true }
+
+[features]
+default = ["parallel"]
+parallel = ["dep:rayon"]
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"
+
+# Only include criterion for non-WASM builds to avoid rayon dependency issues
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+criterion = "0.5"
+
+[[bench]]
+name = "spawn_benchmark"
+harness = false
+
+[[bench]]
+name = "changed_query_benchmark"
+harness = false
+
+[[bench]]
+name = "none_query_benchmark"
+harness = false

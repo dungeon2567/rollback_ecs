@@ -1,0 +1,13 @@
+# Clippy configuration for rollback_ecs
+
+# Allow complex type expressions for our hierarchical storage structures
+type-complexity-threshold = 30
+
+# Allow too many arguments for system creation
+too-many-arguments-threshold = 10
+
+# Allow too many lines in functions (for complex algorithms)
+too-many-lines-threshold = 500
+
+# Allow excessive nesting for complex tree traversal
+excessive-nesting-threshold = 10
